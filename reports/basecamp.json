@@ -1,0 +1,276 @@
+{
+  "inputUrl": "https://www.basecamp.com",
+  "auditedUrl": "https://www.basecamp.com/",
+  "businessName": "basecamp.com",
+  "generatedAt": "2026-08-04T19:38:03.481Z",
+  "score": 0,
+  "checks": [
+    {
+      "id": "entity-clarity",
+      "name": "Entity clarity",
+      "weight": 35,
+      "score": 0,
+      "why": "AI engines need to understand what entity the site represents before they can confidently recommend or cite it.",
+      "evidence": {
+        "title": "",
+        "metaDescription": "",
+        "businessName": "basecamp.com",
+        "hasOrganizationSchema": false,
+        "hasAbout": false,
+        "hasContact": false
+      },
+      "findings": [
+        {
+          "id": "missing-entity-schema",
+          "severity": "High",
+          "summary": "Your business identity is not packaged for AI engines.",
+          "page": "https://www.basecamp.com/",
+          "evidence": "No Organization/LocalBusiness JSON-LD was found on the homepage.",
+          "recommendation": "Add structured data that states the business name, URL, description, logo, sameAs profiles, and contact details.",
+          "impact": 5,
+          "effort": 2
+        },
+        {
+          "id": "weak-description",
+          "severity": "Medium",
+          "summary": "The homepage does not clearly summarize what the business does.",
+          "page": "https://www.basecamp.com/",
+          "evidence": "Meta description found: \"none\"",
+          "recommendation": "Write a plain-English 150–170 character description that says who you help, what you sell, and where/for whom.",
+          "impact": 4,
+          "effort": 1
+        },
+        {
+          "id": "thin-trust-pages",
+          "severity": "Medium",
+          "summary": "AI answers need corroborating entity pages.",
+          "page": "https://www.basecamp.com/",
+          "evidence": "About page detected: false. Contact page detected: false.",
+          "recommendation": "Expose obvious About and Contact pages in the main navigation so crawlers can verify the entity.",
+          "impact": 3,
+          "effort": 2
+        }
+      ]
+    },
+    {
+      "id": "answer-citation",
+      "name": "Answer citation readiness",
+      "weight": 40,
+      "score": 0,
+      "why": "AI engines cite pages that directly answer natural-language questions with specific facts, comparisons, and proof.",
+      "evidence": {
+        "hasFaq": false,
+        "comparisonPages": [],
+        "proofPointPages": [],
+        "quotablePages": []
+      },
+      "findings": [
+        {
+          "id": "no-question-hub",
+          "severity": "High",
+          "summary": "The site lacks a question-and-answer page AI engines can quote.",
+          "evidence": "No FAQ or question-led page was detected in the crawled pages.",
+          "recommendation": "Create an FAQ answering buying questions in complete, citation-friendly sentences.",
+          "impact": 5,
+          "effort": 2
+        },
+        {
+          "id": "missing-buyer-intent-content",
+          "severity": "High",
+          "summary": "There is little content for “best / cost / compare” AI-search prompts.",
+          "evidence": "No crawled page contained strong comparison, pricing, alternative, or case-study language.",
+          "recommendation": "Publish one page that directly answers how to choose, compare, and budget for this type of business.",
+          "impact": 5,
+          "effort": 3
+        },
+        {
+          "id": "no-proof-points",
+          "severity": "Medium",
+          "summary": "Claims are hard to cite because proof points are not explicit.",
+          "evidence": "No concrete numbers such as years, locations, reviews, prices, or client counts were detected.",
+          "recommendation": "Add verifiable proof points near service claims.",
+          "impact": 4,
+          "effort": 1
+        }
+      ]
+    },
+    {
+      "id": "crawl-extract",
+      "name": "Crawler extractability",
+      "weight": 25,
+      "score": 20,
+      "why": "An AI engine cannot cite what it cannot crawl, parse, or identify as the primary page.",
+      "evidence": {
+        "robotsFetched": false,
+        "robotsBlocksAI": false,
+        "fetchedPages": 0,
+        "pagesWithTitles": 0,
+        "readablePages": 0,
+        "pagesWithCanonicals": 0
+      },
+      "findings": [
+        {
+          "id": "missing-canonicals",
+          "severity": "Low",
+          "summary": "Canonical URLs were not detected.",
+          "evidence": "No rel=\"canonical\" tags were found in fetched pages.",
+          "recommendation": "Add canonical tags to clarify the preferred URL for each page.",
+          "impact": 2,
+          "effort": 1
+        }
+      ]
+    }
+  ],
+  "findings": [
+    {
+      "id": "weak-description",
+      "severity": "Medium",
+      "summary": "The homepage does not clearly summarize what the business does.",
+      "page": "https://www.basecamp.com/",
+      "evidence": "Meta description found: \"none\"",
+      "recommendation": "Write a plain-English 150–170 character description that says who you help, what you sell, and where/for whom.",
+      "impact": 4,
+      "effort": 1,
+      "check": "Entity clarity"
+    },
+    {
+      "id": "no-proof-points",
+      "severity": "Medium",
+      "summary": "Claims are hard to cite because proof points are not explicit.",
+      "evidence": "No concrete numbers such as years, locations, reviews, prices, or client counts were detected.",
+      "recommendation": "Add verifiable proof points near service claims.",
+      "impact": 4,
+      "effort": 1,
+      "check": "Answer citation readiness"
+    },
+    {
+      "id": "missing-entity-schema",
+      "severity": "High",
+      "summary": "Your business identity is not packaged for AI engines.",
+      "page": "https://www.basecamp.com/",
+      "evidence": "No Organization/LocalBusiness JSON-LD was found on the homepage.",
+      "recommendation": "Add structured data that states the business name, URL, description, logo, sameAs profiles, and contact details.",
+      "impact": 5,
+      "effort": 2,
+      "check": "Entity clarity"
+    },
+    {
+      "id": "no-question-hub",
+      "severity": "High",
+      "summary": "The site lacks a question-and-answer page AI engines can quote.",
+      "evidence": "No FAQ or question-led page was detected in the crawled pages.",
+      "recommendation": "Create an FAQ answering buying questions in complete, citation-friendly sentences.",
+      "impact": 5,
+      "effort": 2,
+      "check": "Answer citation readiness"
+    },
+    {
+      "id": "missing-canonicals",
+      "severity": "Low",
+      "summary": "Canonical URLs were not detected.",
+      "evidence": "No rel=\"canonical\" tags were found in fetched pages.",
+      "recommendation": "Add canonical tags to clarify the preferred URL for each page.",
+      "impact": 2,
+      "effort": 1,
+      "check": "Crawler extractability"
+    },
+    {
+      "id": "missing-buyer-intent-content",
+      "severity": "High",
+      "summary": "There is little content for “best / cost / compare” AI-search prompts.",
+      "evidence": "No crawled page contained strong comparison, pricing, alternative, or case-study language.",
+      "recommendation": "Publish one page that directly answers how to choose, compare, and budget for this type of business.",
+      "impact": 5,
+      "effort": 3,
+      "check": "Answer citation readiness"
+    },
+    {
+      "id": "thin-trust-pages",
+      "severity": "Medium",
+      "summary": "AI answers need corroborating entity pages.",
+      "page": "https://www.basecamp.com/",
+      "evidence": "About page detected: false. Contact page detected: false.",
+      "recommendation": "Expose obvious About and Contact pages in the main navigation so crawlers can verify the entity.",
+      "impact": 3,
+      "effort": 2,
+      "check": "Entity clarity"
+    }
+  ],
+  "fixes": [
+    {
+      "rank": 1,
+      "title": "Write a plain-English 150–170 character description that says who you help, what you sell, and where/for whom.",
+      "sourceFinding": "weak-description",
+      "impact": 4,
+      "effort": 1,
+      "whyNow": "The homepage does not clearly summarize what the business does.",
+      "copyPaste": "basecamp.com helps [ideal customer] achieve [specific outcome] with [product/service] in [market/location]."
+    },
+    {
+      "rank": 2,
+      "title": "Add verifiable proof points near service claims.",
+      "sourceFinding": "no-proof-points",
+      "impact": 4,
+      "effort": 1,
+      "whyNow": "Claims are hard to cite because proof points are not explicit.",
+      "copyPaste": "Use the evidence above as the edit brief; keep the answer specific, factual, and written in complete sentences."
+    },
+    {
+      "rank": 3,
+      "title": "Add structured data that states the business name, URL, description, logo, sameAs profiles, and contact details.",
+      "sourceFinding": "missing-entity-schema",
+      "impact": 5,
+      "effort": 2,
+      "whyNow": "Your business identity is not packaged for AI engines.",
+      "copyPaste": "<script type=\"application/ld+json\">\n{\n  \"@context\": \"https://schema.org\",\n  \"@type\": \"Organization\",\n  \"name\": \"basecamp.com\",\n  \"url\": \"https://www.basecamp.com/\",\n  \"description\": \"basecamp.com helps customers with [specific outcome].\",\n  \"sameAs\": [\n    \"https://www.linkedin.com/company/your-company\"\n  ]\n}\n</script>"
+    },
+    {
+      "rank": 4,
+      "title": "Create an FAQ answering buying questions in complete, citation-friendly sentences.",
+      "sourceFinding": "no-question-hub",
+      "impact": 5,
+      "effort": 2,
+      "whyNow": "The site lacks a question-and-answer page AI engines can quote.",
+      "copyPaste": "FAQ starter:\nQ: What should customers know before choosing basecamp.com?\nA: Customers should compare [criterion 1], [criterion 2], and [criterion 3]. basecamp.com is a strong fit when [specific buyer situation]."
+    },
+    {
+      "rank": 5,
+      "title": "Add canonical tags to clarify the preferred URL for each page.",
+      "sourceFinding": "missing-canonicals",
+      "impact": 2,
+      "effort": 1,
+      "whyNow": "Canonical URLs were not detected.",
+      "copyPaste": "Use the evidence above as the edit brief; keep the answer specific, factual, and written in complete sentences."
+    },
+    {
+      "rank": 6,
+      "title": "Publish one page that directly answers how to choose, compare, and budget for this type of business.",
+      "sourceFinding": "missing-buyer-intent-content",
+      "impact": 5,
+      "effort": 3,
+      "whyNow": "There is little content for “best / cost / compare” AI-search prompts.",
+      "copyPaste": "Use the evidence above as the edit brief; keep the answer specific, factual, and written in complete sentences."
+    },
+    {
+      "rank": 7,
+      "title": "Expose obvious About and Contact pages in the main navigation so crawlers can verify the entity.",
+      "sourceFinding": "thin-trust-pages",
+      "impact": 3,
+      "effort": 2,
+      "whyNow": "AI answers need corroborating entity pages.",
+      "copyPaste": "Use the evidence above as the edit brief; keep the answer specific, factual, and written in complete sentences."
+    }
+  ],
+  "pages": [
+    {
+      "url": "https://www.basecamp.com/",
+      "ok": false,
+      "title": "",
+      "readableCharacters": 0,
+      "error": "fetch failed"
+    }
+  ],
+  "warnings": [
+    "Could not fetch homepage: fetch failed"
+  ]
+}

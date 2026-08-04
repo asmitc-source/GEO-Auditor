@@ -1,0 +1,15 @@
+{
+  "name": "geo-auditor",
+  "version": "1.0.0",
+  "description": "A local GEO (Generative Engine Optimization) auditor that turns a business URL into an evidenced AI-search visibility report.",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "audit": "node src/cli.js",
+    "demo": "node scripts/run-sample-audits.js",
+    "test": "node --test"
+  },
+  "engines": { "node": ">=20" },
+  "keywords": ["geo", "llmo", "ai-search", "seo", "auditor"],
+  "license": "MIT"
+}
