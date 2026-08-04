@@ -1,1 +1,30 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>GEO Auditor</title><link rel="stylesheet" href="/style.css"></head><body><main><section class="hero"><p class="eyebrow">Generative Engine Optimization</p><h1>Find out if AI search can understand, trust, and cite your business.</h1><p>Enter a URL. Get a scored, evidenced report with prioritized copy-paste fixes for ChatGPT, Perplexity, Claude, and AI Overview visibility.</p><form id="form"><input id="url" placeholder="https://example.com" value="https://www.basecamp.com"><button>Run audit</button></form></section><section id="report" class="card hidden"></section></main><script src="/app.js"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GEO Auditor — is your business visible to AI search?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="scanline" aria-hidden="true"></div>
+<main>
+  <header class="hero">
+    <p class="eyebrow">GEO / AEO / LLMO audit</p>
+    <h1>ChatGPT, Perplexity, and Google AI Overviews are answering your customers' questions right now.<br><span class="accent">Is your business in the answer?</span></h1>
+    <p class="sub">Enter a URL. We crawl the real site, ask a real AI model real buying questions, and hand you a scored report with evidence and copy-pasteable fixes — not generic SEO advice.</p>
+    <form id="form" class="query">
+      <span class="prompt-glyph">›</span>
+      <input id="url" name="url" placeholder="e.g. www.your-business.com" autocomplete="off" required>
+      <button type="submit">Run audit</button>
+    </form>
+    <p class="hint" id="hint">Tries the homepage plus About / Contact / FAQ / Pricing and internal links. Usually 10–30 seconds.</p>
+  </header>
+
+  <section id="report" class="report hidden" aria-live="polite"></section>
+</main>
+<script src="/app.js"></script>
+</body>
+</html>
