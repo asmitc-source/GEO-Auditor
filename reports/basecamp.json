@@ -1,0 +1,108 @@
+{
+  "inputUrl": "https://basecamp.com/",
+  "auditedUrl": "https://basecamp.com/",
+  "businessName": "Basecamp",
+  "generatedAt": "2026-08-04T19:45:00.000Z",
+  "score": 83,
+  "checks": [
+    {
+      "id": "entity-clarity",
+      "name": "Entity clarity",
+      "weight": 35,
+      "score": 80,
+      "why": "AI engines need to understand what entity the site represents before they can confidently recommend or cite it.",
+      "evidence": {
+        "title": "Basecamp - Project Management Software",
+        "metaDescription": "Basecamp is a straightforward project management system for teams that need one place for projects, tasks, discussions, files, deadlines, and client work.",
+        "businessName": "Basecamp",
+        "hasOrganizationSchema": true,
+        "hasAbout": false,
+        "hasContact": true
+      },
+      "findings": [
+        {
+          "id": "thin-trust-pages",
+          "severity": "Medium",
+          "summary": "AI answers need corroborating entity pages.",
+          "page": "https://basecamp.com/",
+          "evidence": "About page detected: false. Contact page detected: true.",
+          "recommendation": "Expose obvious About and Contact pages in the main navigation so crawlers can verify the entity.",
+          "impact": 3,
+          "effort": 2
+        }
+      ]
+    },
+    {
+      "id": "answer-citation",
+      "name": "Answer citation readiness",
+      "weight": 40,
+      "score": 75,
+      "why": "AI engines cite pages that directly answer natural-language questions with specific facts, comparisons, and proof.",
+      "evidence": {
+        "hasFaq": true,
+        "comparisonPages": [
+          "https://basecamp.com/"
+        ],
+        "proofPointPages": [
+          "https://basecamp.com/"
+        ],
+        "quotablePages": [
+          "https://basecamp.com/"
+        ]
+      },
+      "findings": []
+    },
+    {
+      "id": "crawl-extract",
+      "name": "Crawler extractability",
+      "weight": 25,
+      "score": 100,
+      "why": "An AI engine cannot cite what it cannot crawl, parse, or identify as the primary page.",
+      "evidence": {
+        "robotsFetched": true,
+        "robotsBlocksAI": false,
+        "fetchedPages": 1,
+        "pagesWithTitles": 1,
+        "readablePages": 1,
+        "pagesWithCanonicals": 1
+      },
+      "findings": []
+    }
+  ],
+  "findings": [
+    {
+      "id": "thin-trust-pages",
+      "severity": "Medium",
+      "summary": "AI answers need corroborating entity pages.",
+      "page": "https://basecamp.com/",
+      "evidence": "About page detected: false. Contact page detected: true.",
+      "recommendation": "Expose obvious About and Contact pages in the main navigation so crawlers can verify the entity.",
+      "impact": 3,
+      "effort": 2,
+      "check": "Entity clarity"
+    }
+  ],
+  "fixes": [
+    {
+      "rank": 1,
+      "title": "Expose obvious About and Contact pages in the main navigation so crawlers can verify the entity.",
+      "sourceFinding": "thin-trust-pages",
+      "impact": 3,
+      "effort": 2,
+      "whyNow": "AI answers need corroborating entity pages.",
+      "copyPaste": "Use the evidence above as the edit brief; keep the answer specific, factual, and written in complete sentences."
+    }
+  ],
+  "pages": [
+    {
+      "url": "https://basecamp.com/",
+      "ok": true,
+      "status": 200,
+      "title": "Basecamp - Project Management Software",
+      "readableCharacters": 934
+    }
+  ],
+  "warnings": [
+    "Generated from a cached public-page snapshot because the execution environment blocks outbound HTTP."
+  ]
+}

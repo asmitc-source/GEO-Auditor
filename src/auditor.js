@@ -1,0 +1,133 @@
+const DEFAULT_TIMEOUT_MS = 12000;
+const USER_AGENT = 'GEO-Auditor/1.0 (+https://github.com/geo-auditor)';
+const MAX_PAGES = 8;
+
+export function auditHtmlSnapshot(inputUrl, html, options = {}) {
+  const startedAt = options.generatedAt || new Date().toISOString();
+  const baseUrl = normalizeUrl(inputUrl);
+  return buildReport({
+    inputUrl,
+    baseUrl,
+    startedAt,
+    pages: [{ url: baseUrl, ok: true, status: 200, html }],
+    robots: { ok: true, status: 200, text: '' },
+    warnings: ['Generated from a cached public-page snapshot because the execution environment blocks outbound HTTP.']
+  });
+}
+
+export async function auditSite(inputUrl, options = {}) {
+  const startedAt = new Date().toISOString();
+  const baseUrl = normalizeUrl(inputUrl);
+  const origin = new URL(baseUrl).origin;
+  const pages = [];
+  const warnings = [];
+
+  const home = await fetchPage(baseUrl, options);
+  pages.push(home);
+  if (!home.ok) {
+    return buildReport({ inputUrl, baseUrl, startedAt, pages, warnings: [`Could not fetch homepage: ${home.error}`] });
+  }
+
+  const robots = await fetchText(new URL('/robots.txt', origin).href, options).catch(error => ({ ok: false, error: error.message, text: '' }));
+  const sitemapUrls = discoverSitemaps(robots.text, origin);
+  const sitemapPages = await discoverPagesFromSitemaps(sitemapUrls, origin, options);
+  const linkedPages = discoverInternalLinks(home.html, origin, baseUrl);
+  const candidateUrls = [...new Set([...priorityUrls(origin), ...sitemapPages, ...linkedPages])]
+    .filter(url => url.startsWith(origin) && url !== baseUrl)
+    .slice(0, MAX_PAGES - 1);
+
+  for (const url of candidateUrls) pages.push(await fetchPage(url, options));
+
+  return buildReport({ inputUrl, baseUrl, startedAt, pages, robots, warnings });
+}
+
+function buildReport({ inputUrl, baseUrl, startedAt, pages, robots, warnings }) {
+  const okPages = pages.filter(page => page.ok);
+  const home = pages[0];
+  const businessName = inferBusinessName(home?.html || '', baseUrl);
+  const checks = [
+    entityClarityCheck(okPages, baseUrl, businessName),
+    answerCitationCheck(okPages),
+    crawlExtractCheck(okPages, robots)
+  ];
+  const score = okPages.length ? Math.round(checks.reduce((sum, check) => sum + check.score * check.weight, 0) / checks.reduce((sum, check) => sum + check.weight, 0)) : 0;
+  const findings = checks.flatMap(check => check.findings.map(finding => ({ ...finding, check: check.name })));
+  const fixes = prioritizeFixes(findings, businessName, baseUrl);
+  return { inputUrl, auditedUrl: baseUrl, businessName, generatedAt: startedAt, score, checks, findings, fixes, pages: pages.map(summarizePage), warnings };
+}
+
+function entityClarityCheck(pages, baseUrl, businessName) {
+  const home = pages[0] || { html: '', url: baseUrl };
+  const text = htmlToText(home.html);
+  const title = extractTag(home.html, 'title');
+  const metaDescription = extractMeta(home.html, 'description');
+  const jsonLd = extractJsonLd(home.html);
+  const hasOrganizationSchema = jsonLd.some(item => JSON.stringify(item).toLowerCase().includes('organization') || JSON.stringify(item).toLowerCase().includes('localbusiness'));
+  const hasAbout = pages.some(p => /\babout\b/i.test(p.url) || /\bwho we are\b/i.test(htmlToText(p.html)));
+  const hasContact = pages.some(p => /\bcontact\b/i.test(p.url) || /\b(email|phone|address)\b/i.test(htmlToText(p.html)));
+  const signals = [title && title.length > 12, metaDescription && metaDescription.length > 50, hasOrganizationSchema, hasAbout, hasContact];
+  const score = percent(signals.filter(Boolean).length, signals.length);
+  const findings = [];
+  if (!hasOrganizationSchema) findings.push(finding('missing-entity-schema', 'High', 'Your business identity is not packaged for AI engines.', home.url, 'No Organization/LocalBusiness JSON-LD was found on the homepage.', 'Add structured data that states the business name, URL, description, logo, sameAs profiles, and contact details.', 5, 2));
+  if (!metaDescription || metaDescription.length < 50) findings.push(finding('weak-description', 'Medium', 'The homepage does not clearly summarize what the business does.', home.url, `Meta description found: "${metaDescription || 'none'}"`, 'Write a plain-English 150–170 character description that says who you help, what you sell, and where/for whom.', 4, 1));
+  if (!hasAbout || !hasContact) findings.push(finding('thin-trust-pages', 'Medium', 'AI answers need corroborating entity pages.', home.url, `About page detected: ${hasAbout}. Contact page detected: ${hasContact}.`, 'Expose obvious About and Contact pages in the main navigation so crawlers can verify the entity.', 3, 2));
+  return { id: 'entity-clarity', name: 'Entity clarity', weight: 35, score, why: 'AI engines need to understand what entity the site represents before they can confidently recommend or cite it.', evidence: { title, metaDescription, businessName, hasOrganizationSchema, hasAbout, hasContact }, findings };
+}
+
+function answerCitationCheck(pages) {
+  const evidencePages = pages.map(page => ({ page, text: htmlToText(page.html), headings: extractHeadings(page.html) }));
+  const hasFaq = evidencePages.some(({ text, headings }) => /\bfaq|frequently asked|questions\b/i.test(`${headings.join(' ')} ${text}`));
+  const comparisonContent = evidencePages.filter(({ text }) => /\b(best|compare|versus|vs\.|alternative|pricing|cost|service area|case study|results)\b/i.test(text));
+  const statEvidence = evidencePages.filter(({ text }) => /\b\d+%|\$\d+|\d+\s+(customers|clients|years|locations|projects|reviews)\b/i.test(text));
+  const quotablePages = evidencePages.filter(({ text, headings }) => text.length > 900 && headings.length >= 2);
+  const signals = [hasFaq, comparisonContent.length > 0, statEvidence.length > 0, quotablePages.length >= 2];
+  const score = percent(signals.filter(Boolean).length, signals.length);
+  const findings = [];
+  if (!hasFaq) findings.push(finding('no-question-hub', 'High', 'The site lacks a question-and-answer page AI engines can quote.', pages[0]?.url, 'No FAQ or question-led page was detected in the crawled pages.', 'Create an FAQ answering buying questions in complete, citation-friendly sentences.', 5, 2));
+  if (comparisonContent.length === 0) findings.push(finding('missing-buyer-intent-content', 'High', 'There is little content for “best / cost / compare” AI-search prompts.', pages[0]?.url, 'No crawled page contained strong comparison, pricing, alternative, or case-study language.', 'Publish one page that directly answers how to choose, compare, and budget for this type of business.', 5, 3));
+  if (statEvidence.length === 0) findings.push(finding('no-proof-points', 'Medium', 'Claims are hard to cite because proof points are not explicit.', pages[0]?.url, 'No concrete numbers such as years, locations, reviews, prices, or client counts were detected.', 'Add verifiable proof points near service claims.', 4, 1));
+  return { id: 'answer-citation', name: 'Answer citation readiness', weight: 40, score, why: 'AI engines cite pages that directly answer natural-language questions with specific facts, comparisons, and proof.', evidence: { hasFaq, comparisonPages: comparisonContent.map(x => x.page.url), proofPointPages: statEvidence.map(x => x.page.url), quotablePages: quotablePages.map(x => x.page.url) }, findings };
+}
+
+function crawlExtractCheck(pages, robots) {
+  const ok = pages.length > 0;
+  const robotsBlocksAI = /User-agent:\s*(GPTBot|ChatGPT-User|PerplexityBot|ClaudeBot|Google-Extended)[\s\S]{0,120}Disallow:\s*\//i.test(robots?.text || '');
+  const titles = pages.filter(p => extractTag(p.html, 'title')).length;
+  const readable = pages.filter(p => htmlToText(p.html).length > 500).length;
+  const canonical = pages.filter(p => /rel=["']canonical["']/i.test(p.html)).length;
+  const signals = [ok, !robotsBlocksAI, titles / Math.max(pages.length, 1) > .75, readable / Math.max(pages.length, 1) > .6, canonical > 0];
+  const score = percent(signals.filter(Boolean).length, signals.length);
+  const findings = [];
+  if (robotsBlocksAI) findings.push(finding('ai-bots-blocked', 'High', 'Robots.txt appears to block at least one major AI crawler.', new URL('/robots.txt', pages[0].url).href, 'Found an AI crawler user-agent followed by Disallow: /.', 'Only block AI crawlers intentionally. If visibility is the goal, allow crawling of public marketing pages.', 5, 1));
+  if (pages.length > 0 && readable / Math.max(pages.length, 1) <= .6) findings.push(finding('low-readable-text', 'Medium', 'Several pages have too little extractable text.', pages.find(p => htmlToText(p.html).length <= 500)?.url, `${readable}/${pages.length} fetched pages had more than 500 readable characters.`, 'Move important claims out of images/scripts and into normal HTML text.', 4, 2));
+  if (canonical === 0) findings.push(finding('missing-canonicals', 'Low', 'Canonical URLs were not detected.', pages[0]?.url, 'No rel="canonical" tags were found in fetched pages.', 'Add canonical tags to clarify the preferred URL for each page.', 2, 1));
+  return { id: 'crawl-extract', name: 'Crawler extractability', weight: 25, score, why: 'An AI engine cannot cite what it cannot crawl, parse, or identify as the primary page.', evidence: { robotsFetched: Boolean(robots), robotsBlocksAI, fetchedPages: pages.length, pagesWithTitles: titles, readablePages: readable, pagesWithCanonicals: canonical }, findings };
+}
+
+function prioritizeFixes(findings, businessName, baseUrl) {
+  return findings.sort((a, b) => (b.impact / b.effort) - (a.impact / a.effort)).map((f, index) => ({ rank: index + 1, title: f.recommendation, sourceFinding: f.id, impact: f.impact, effort: f.effort, whyNow: f.summary, copyPaste: copyPasteFor(f.id, businessName, baseUrl) }));
+}
+
+function copyPasteFor(id, businessName, baseUrl) {
+  if (id === 'missing-entity-schema') return `<script type="application/ld+json">\n${JSON.stringify({ '@context': 'https://schema.org', '@type': 'Organization', name: businessName, url: baseUrl, description: `${businessName} helps customers with [specific outcome].`, sameAs: ['https://www.linkedin.com/company/your-company'] }, null, 2)}\n</script>`;
+  if (id === 'no-question-hub') return `FAQ starter:\nQ: What should customers know before choosing ${businessName}?\nA: Customers should compare [criterion 1], [criterion 2], and [criterion 3]. ${businessName} is a strong fit when [specific buyer situation].`;
+  if (id === 'weak-description') return `${businessName} helps [ideal customer] achieve [specific outcome] with [product/service] in [market/location].`;
+  return 'Use the evidence above as the edit brief; keep the answer specific, factual, and written in complete sentences.';
+}
+
+function finding(id, severity, summary, page, evidence, recommendation, impact, effort) { return { id, severity, summary, page, evidence, recommendation, impact, effort }; }
+function percent(a, b) { return Math.max(0, Math.min(100, Math.round((a / b) * 100))); }
+function normalizeUrl(value) { const withProtocol = /^https?:\/\//i.test(value) ? value : `https://${value}`; const url = new URL(withProtocol); url.hash = ''; return url.href.replace(/\/$/, '/'); }
+async function fetchPage(url, options) { const result = await fetchText(url, options).catch(error => ({ ok: false, error: error.message, text: '' })); return { url, ok: result.ok, status: result.status, html: result.text || '', error: result.error }; }
+async function fetchText(url, options = {}) { const controller = new AbortController(); const timer = setTimeout(() => controller.abort(), options.timeoutMs || DEFAULT_TIMEOUT_MS); try { const response = await fetch(url, { signal: controller.signal, headers: { 'user-agent': USER_AGENT, accept: 'text/html,application/xhtml+xml,text/plain,*/*' }, redirect: 'follow' }); const text = await response.text(); return { ok: response.ok, status: response.status, text }; } finally { clearTimeout(timer); } }
+function discoverSitemaps(text = '', origin) { const matches = [...text.matchAll(/^Sitemap:\s*(.+)$/gim)].map(m => m[1].trim()); return matches.length ? matches : [new URL('/sitemap.xml', origin).href]; }
+async function discoverPagesFromSitemaps(urls, origin, options) { const pages = []; for (const url of urls.slice(0, 3)) { const res = await fetchText(url, options).catch(() => null); if (!res?.ok) continue; pages.push(...[...res.text.matchAll(/<loc>(.*?)<\/loc>/gim)].map(m => m[1]).filter(u => u.startsWith(origin)).slice(0, 12)); } return pages; }
+function priorityUrls(origin) { return ['/about', '/about-us', '/contact', '/faq', '/pricing', '/case-studies', '/blog'].map(p => new URL(p, origin).href); }
+function discoverInternalLinks(html, origin, baseUrl) { return [...html.matchAll(/href=["']([^"'#]+)["']/gim)].map(m => { try { return new URL(m[1], baseUrl).href.split('#')[0]; } catch { return null; } }).filter(Boolean).filter(u => u.startsWith(origin)); }
+function extractTag(html, tag) { return (html.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\\/${tag}>`, 'i'))?.[1] || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim(); }
+function extractMeta(html, name) { return html.match(new RegExp(`<meta[^>]+name=["']${name}["'][^>]+content=["']([^"']*)["']`, 'i'))?.[1] || html.match(new RegExp(`<meta[^>]+content=["']([^"']*)["'][^>]+name=["']${name}["']`, 'i'))?.[1] || ''; }
+function extractHeadings(html) { return [...html.matchAll(/<h[1-3][^>]*>([\s\S]*?)<\/h[1-3]>/gim)].map(m => m[1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()).filter(Boolean); }
+function htmlToText(html) { return html.replace(/<script[\s\S]*?<\/script>/gi, ' ').replace(/<style[\s\S]*?<\/style>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim(); }
+function inferBusinessName(html, baseUrl) { const og = html.match(/<meta[^>]+property=["']og:site_name["'][^>]+content=["']([^"']+)/i)?.[1]; return og || extractTag(html, 'title').split(/[|–-]/)[0].trim() || new URL(baseUrl).hostname.replace(/^www\./, ''); }
+function extractJsonLd(html) { return [...html.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gim)].flatMap(m => { try { return [JSON.parse(m[1].trim())]; } catch { return []; } }); }
+function summarizePage(page) { return { url: page.url, ok: page.ok, status: page.status, title: page.ok ? extractTag(page.html, 'title') : '', readableCharacters: page.ok ? htmlToText(page.html).length : 0, error: page.error }; }

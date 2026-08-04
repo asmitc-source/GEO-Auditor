@@ -1,0 +1,167 @@
+{
+  "inputUrl": "https://linear.app/",
+  "auditedUrl": "https://linear.app/",
+  "businessName": "Linear",
+  "generatedAt": "2026-08-04T19:45:00.000Z",
+  "score": 59,
+  "checks": [
+    {
+      "id": "entity-clarity",
+      "name": "Entity clarity",
+      "weight": 35,
+      "score": 40,
+      "why": "AI engines need to understand what entity the site represents before they can confidently recommend or cite it.",
+      "evidence": {
+        "title": "Linear – The system for product development",
+        "metaDescription": "Linear is a product development system for planning, building, and reviewing software with workflows designed for modern teams and AI agents.",
+        "businessName": "Linear",
+        "hasOrganizationSchema": false,
+        "hasAbout": false,
+        "hasContact": false
+      },
+      "findings": [
+        {
+          "id": "missing-entity-schema",
+          "severity": "High",
+          "summary": "Your business identity is not packaged for AI engines.",
+          "page": "https://linear.app/",
+          "evidence": "No Organization/LocalBusiness JSON-LD was found on the homepage.",
+          "recommendation": "Add structured data that states the business name, URL, description, logo, sameAs profiles, and contact details.",
+          "impact": 5,
+          "effort": 2
+        },
+        {
+          "id": "thin-trust-pages",
+          "severity": "Medium",
+          "summary": "AI answers need corroborating entity pages.",
+          "page": "https://linear.app/",
+          "evidence": "About page detected: false. Contact page detected: false.",
+          "recommendation": "Expose obvious About and Contact pages in the main navigation so crawlers can verify the entity.",
+          "impact": 3,
+          "effort": 2
+        }
+      ]
+    },
+    {
+      "id": "answer-citation",
+      "name": "Answer citation readiness",
+      "weight": 40,
+      "score": 50,
+      "why": "AI engines cite pages that directly answer natural-language questions with specific facts, comparisons, and proof.",
+      "evidence": {
+        "hasFaq": true,
+        "comparisonPages": [
+          "https://linear.app/"
+        ],
+        "proofPointPages": [],
+        "quotablePages": [
+          "https://linear.app/"
+        ]
+      },
+      "findings": [
+        {
+          "id": "no-proof-points",
+          "severity": "Medium",
+          "summary": "Claims are hard to cite because proof points are not explicit.",
+          "page": "https://linear.app/",
+          "evidence": "No concrete numbers such as years, locations, reviews, prices, or client counts were detected.",
+          "recommendation": "Add verifiable proof points near service claims.",
+          "impact": 4,
+          "effort": 1
+        }
+      ]
+    },
+    {
+      "id": "crawl-extract",
+      "name": "Crawler extractability",
+      "weight": 25,
+      "score": 100,
+      "why": "An AI engine cannot cite what it cannot crawl, parse, or identify as the primary page.",
+      "evidence": {
+        "robotsFetched": true,
+        "robotsBlocksAI": false,
+        "fetchedPages": 1,
+        "pagesWithTitles": 1,
+        "readablePages": 1,
+        "pagesWithCanonicals": 1
+      },
+      "findings": []
+    }
+  ],
+  "findings": [
+    {
+      "id": "no-proof-points",
+      "severity": "Medium",
+      "summary": "Claims are hard to cite because proof points are not explicit.",
+      "page": "https://linear.app/",
+      "evidence": "No concrete numbers such as years, locations, reviews, prices, or client counts were detected.",
+      "recommendation": "Add verifiable proof points near service claims.",
+      "impact": 4,
+      "effort": 1,
+      "check": "Answer citation readiness"
+    },
+    {
+      "id": "missing-entity-schema",
+      "severity": "High",
+      "summary": "Your business identity is not packaged for AI engines.",
+      "page": "https://linear.app/",
+      "evidence": "No Organization/LocalBusiness JSON-LD was found on the homepage.",
+      "recommendation": "Add structured data that states the business name, URL, description, logo, sameAs profiles, and contact details.",
+      "impact": 5,
+      "effort": 2,
+      "check": "Entity clarity"
+    },
+    {
+      "id": "thin-trust-pages",
+      "severity": "Medium",
+      "summary": "AI answers need corroborating entity pages.",
+      "page": "https://linear.app/",
+      "evidence": "About page detected: false. Contact page detected: false.",
+      "recommendation": "Expose obvious About and Contact pages in the main navigation so crawlers can verify the entity.",
+      "impact": 3,
+      "effort": 2,
+      "check": "Entity clarity"
+    }
+  ],
+  "fixes": [
+    {
+      "rank": 1,
+      "title": "Add verifiable proof points near service claims.",
+      "sourceFinding": "no-proof-points",
+      "impact": 4,
+      "effort": 1,
+      "whyNow": "Claims are hard to cite because proof points are not explicit.",
+      "copyPaste": "Use the evidence above as the edit brief; keep the answer specific, factual, and written in complete sentences."
+    },
+    {
+      "rank": 2,
+      "title": "Add structured data that states the business name, URL, description, logo, sameAs profiles, and contact details.",
+      "sourceFinding": "missing-entity-schema",
+      "impact": 5,
+      "effort": 2,
+      "whyNow": "Your business identity is not packaged for AI engines.",
+      "copyPaste": "<script type=\"application/ld+json\">\n{\n  \"@context\": \"https://schema.org\",\n  \"@type\": \"Organization\",\n  \"name\": \"Linear\",\n  \"url\": \"https://linear.app/\",\n  \"description\": \"Linear helps customers with [specific outcome].\",\n  \"sameAs\": [\n    \"https://www.linkedin.com/company/your-company\"\n  ]\n}\n</script>"
+    },
+    {
+      "rank": 3,
+      "title": "Expose obvious About and Contact pages in the main navigation so crawlers can verify the entity.",
+      "sourceFinding": "thin-trust-pages",
+      "impact": 3,
+      "effort": 2,
+      "whyNow": "AI answers need corroborating entity pages.",
+      "copyPaste": "Use the evidence above as the edit brief; keep the answer specific, factual, and written in complete sentences."
+    }
+  ],
+  "pages": [
+    {
+      "url": "https://linear.app/",
+      "ok": true,
+      "status": 200,
+      "title": "Linear – The system for product development",
+      "readableCharacters": 921
+    }
+  ],
+  "warnings": [
+    "Generated from a cached public-page snapshot because the execution environment blocks outbound HTTP."
+  ]
+}
