@@ -5,26 +5,96 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>GEO Auditor — is your business visible to AI search?</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,500;0,600;1,500;1,600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/style.css">
+<script>
+  // Applied before paint to avoid a light-mode flash for users who saved dark.
+  (function () {
+    var saved = localStorage.getItem('geo-auditor-theme');
+    var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', theme);
+  })();
+</script>
 </head>
 <body>
-<div class="scanline" aria-hidden="true"></div>
-<main>
-  <header class="hero">
-    <p class="eyebrow">GEO / AEO / LLMO audit</p>
-    <h1>ChatGPT, Perplexity, and Google AI Overviews are answering your customers' questions right now.<br><span class="accent">Is your business in the answer?</span></h1>
-    <p class="sub">Enter a URL. We crawl the real site, ask a real AI model real buying questions, and hand you a scored report with evidence and copy-pasteable fixes — not generic SEO advice.</p>
-    <form id="form" class="query">
-      <span class="prompt-glyph">›</span>
-      <input id="url" name="url" placeholder="e.g. www.your-business.com" autocomplete="off" required>
-      <button type="submit">Run audit</button>
-    </form>
-    <p class="hint" id="hint">Tries the homepage plus About / Contact / FAQ / Pricing and internal links. Usually 10–30 seconds.</p>
-  </header>
 
-  <section id="report" class="report hidden" aria-live="polite"></section>
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <line x1="5" y1="19" x2="19" y2="5" stroke="#F3EEDF" stroke-width="1.4" stroke-linecap="round" opacity="0.35"/>
+          <circle cx="6.5" cy="17.5" r="2.1" fill="#F3EEDF"/>
+          <circle cx="12" cy="12" r="2.3" fill="#F3EEDF"/>
+          <circle cx="17.7" cy="6.3" r="3.1" fill="#E2672A"/>
+        </svg>
+      </span>
+      <span class="brand-text">
+        <span class="brand-name">GEO Auditor</span>
+        <span class="brand-sub">仲間 · Nakama Growth</span>
+      </span>
+    </div>
+
+    <nav class="tabs" role="tablist" aria-label="Sections">
+      <button class="tab active" id="tab-audit" role="tab" aria-selected="true" aria-controls="panel-audit">Website Audit</button>
+      <button class="tab" id="tab-reddit" role="tab" aria-selected="false" aria-controls="panel-reddit">Reddit Discovery</button>
+    </nav>
+
+    <div class="status-line" id="statusLine" title="What's actually live in this deployment">
+      <span class="status-item" id="statCrawl"><span class="status-dot on"></span>Live crawl</span>
+      <span class="status-sep">·</span>
+      <span class="status-item" id="statAi"><span class="status-dot"></span>AI probe</span>
+      <span class="status-sep">·</span>
+      <span class="status-item" id="statReddit"><span class="status-dot"></span>Reddit</span>
+    </div>
+
+    <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle dark mode">
+      <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v2.5M12 19v2.5M4.9 4.9l1.8 1.8M17.3 17.3l1.8 1.8M2.5 12H5M19 12h2.5M4.9 19.1l1.8-1.8M17.3 6.7l1.8-1.8"/></svg>
+      <svg class="icon-moon" viewBox="0 0 24 24" fill="currentColor"><path d="M20.4 14.7A8.3 8.3 0 0 1 9.3 3.6a8.7 8.7 0 1 0 11.1 11.1z"/></svg>
+    </button>
+  </div>
+</header>
+
+<main>
+
+  <!-- ============ WEBSITE AUDIT PANEL ============ -->
+  <section id="panel-audit" class="panel" role="tabpanel" aria-labelledby="tab-audit">
+    <header class="hero">
+      <p class="eyebrow">GEO / AEO / LLMO audit</p>
+      <h1>ChatGPT, Perplexity, and Google AI Overviews are answering your customers' questions right now.<br>Is your business <span class="accent">in the answer?</span></h1>
+      <p class="sub">Enter a URL. We crawl the real site, ask a real AI model real buying questions, and hand you a scored report with evidence and copy-pasteable fixes — not generic SEO advice.</p>
+      <form id="form" class="query">
+        <svg class="query-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="m20 20-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <input id="url" name="url" placeholder="e.g. www.your-business.com" autocomplete="off" required>
+        <button type="submit">Run audit</button>
+      </form>
+      <p class="hint" id="hint">Tries the homepage plus About / Contact / FAQ / Pricing and internal links. Usually 10–30 seconds.</p>
+    </header>
+
+    <section id="report" class="report hidden" aria-live="polite"></section>
+  </section>
+
+  <!-- ============ REDDIT DISCOVERY PANEL ============ -->
+  <section id="panel-reddit" class="panel hidden" role="tabpanel" aria-labelledby="tab-reddit">
+    <header class="hero hero-reddit">
+      <p class="eyebrow">Reddit / Discovery</p>
+      <h1>Find where your category is already being discussed<br><span class="accent">— and whether you're in the thread.</span></h1>
+      <p class="sub">Search a buying question the way a customer would. We pull real threads from Reddit's own API, ranked by how likely they are to already be feeding AI answers — not a scrape, not a guess.</p>
+      <form id="redditForm" class="query browser-bar">
+        <span class="browser-dots" aria-hidden="true"><span></span><span></span><span></span></span>
+        <svg class="query-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="m20 20-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <input id="redditQuery" name="q" placeholder="e.g. best RFP tools" autocomplete="off" required>
+        <button type="submit">Search Reddit</button>
+      </form>
+      <p class="hint" id="redditHint">Read-only, via Reddit's own API. We never post, comment, or act on your behalf.</p>
+    </header>
+
+    <section id="redditResults" class="report hidden" aria-live="polite"></section>
+  </section>
+
 </main>
+
 <script src="/app.js"></script>
 </body>
 </html>
