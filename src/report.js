@@ -1,41 +1,77 @@
 export function reportToMarkdown(report) {
   if (report.status === 'failed') {
-    return `# GEO Audit: ${report.businessName}\n\nGenerated: ${report.generatedAt}\nURL requested: ${report.inputUrl}\n\n## Audit could not run\n\n${report.warnings.map(w => `- ${w}`).join('\n')}\n\nNo score is shown because no evidence was gathered. This is intentional: a confident-looking score built on a failed fetch would be worse than no score.\n`;
+    return `# GEO Audit: ${report.businessName}\n\nGenerated: ${report.generatedAt}\nURL requested: ${report.inputUrl}\n\n## Audit could not run\n\n${report.warnings.map(warning => `- ${warning}`).join('\n')}\n\nNo score is shown because no reliable site evidence was gathered.\n`;
   }
 
-  const checks = report.checks.map(c => `| ${c.name} | ${c.weight}% | ${typeof c.score === 'number' ? `${c.score}/100` : 'not run'} | ${c.why} |`).join('\n');
+  const checks = report.checks
+    .map(check => `| ${check.name} | ${check.weight}% | ${check.score}/100 | ${check.why} |`)
+    .join('\n');
   const findings = report.findings.length
-    ? report.findings.map(f => `### ${f.severity}: ${f.summary}\n- **Page:** ${f.page || report.auditedUrl}\n- **Proof:**\n\n  \`\`\`\n  ${String(f.evidence).split('\n').join('\n  ')}\n  \`\`\`\n- **Fix:** ${f.recommendation}${f.impact ? `\n- **Impact / effort:** ${f.impact}/5 / ${f.effort}/5` : ''}`).join('\n\n')
-    : 'No major findings detected in the selected checks.';
-  const fixes = report.fixes.map(f => `### ${f.rank}. ${f.title}\n- **Why now:** ${f.whyNow}\n- **Impact / effort:** ${f.impact}/5 / ${f.effort}/5\n\n\`\`\`\n${f.copyPaste}\n\`\`\``).join('\n\n');
+    ? report.findings.map(item => `### ${item.severity}: ${item.summary}\n- **Area:** ${item.check || 'Audit'}\n- **Page:** ${item.page || report.auditedUrl}\n- **Evidence:**\n\n  \`\`\`\n  ${String(item.evidence).split('\n').join('\n  ')}\n  \`\`\`\n- **Recommendation:** ${item.recommendation}${item.impact ? `\n- **Impact / effort:** ${item.impact}/5 / ${item.effort}/5` : ''}`).join('\n\n')
+    : 'No major findings detected in the sampled checks.';
+  const fixes = report.fixes
+    .map(fix => `### ${fix.rank}. ${fix.title}\n- **Why now:** ${fix.whyNow}\n- **Impact / effort:** ${fix.impact}/5 / ${fix.effort}/5\n\n\`\`\`\n${fix.copyPaste}\n\`\`\``)
+    .join('\n\n');
 
   return `# GEO Audit Report: ${report.businessName}
 
 Generated: ${report.generatedAt}
 URL: ${report.auditedUrl}
-${report.category ? `Category (inferred): ${report.category}\n` : ''}
-## AI Search Visibility Score: ${typeof report.score === 'number' ? `${report.score}/100` : 'not scored (see warnings)'}
+Category inferred from the homepage: ${report.category}
+
+## Technical AI-readiness score: ${report.readinessScore}/100
+
+This score is deterministic and based only on evidence from the site crawl. It is not presented as observed visibility.
 
 | Check | Weight | Score | Why it matters |
 | --- | ---: | ---: | --- |
 ${checks}
 
-${report.warnings.length ? `## Notes on this run\n\n${report.warnings.map(w => `- ${w}`).join('\n')}\n` : ''}
-## What is broken, with evidence
+${renderVisibility(report.visibility)}
+
+${report.warnings.length ? `## Notes on this run\n\n${report.warnings.map(warning => `- ${warning}`).join('\n')}\n` : ''}
+## Evidence-backed findings
 
 ${findings}
 
-## Monday-morning fix list
+## Prioritized implementation list
 
 ${fixes || 'No fixes required by these checks.'}
 
 ## Crawled pages
 
-${report.pages.map(p => `- ${p.ok ? 'OK' : 'FAIL'} ${p.status || ''} ${p.url} — ${p.title || p.error || 'No title'} (${p.readableCharacters || 0} readable chars)`).join('\n')}
+${report.pages.map(page => `- ${page.ok ? 'OK' : 'FAIL'} ${page.status || ''} ${page.url} — ${page.title || page.error || 'No title'} (${page.readableCharacters || 0} readable characters)`).join('\n')}
 
 ## Methodology notes
 
-- The AI engine citation probe calls the OpenAI API directly (no browsing/search tool attached). It reflects the model's trained knowledge of the business, not a live scrape of ChatGPT/Perplexity's product UI. If \`OPENAI_API_KEY\` is unset, this check is skipped and excluded from the score — never simulated.
-- All other checks are built from a live crawl of the site performed during this run. Pages that failed to fetch are excluded from evidence rather than counted as "missing."
+- Technical readiness and observed visibility are deliberately separate. A technically excellent site can still be absent from grounded answers.
+- The optional visibility snapshot uses one neutral category search through Groq Compound Mini with web search. It inspects the returned source set for the audited brand and domain.
+- This does not measure ChatGPT, Gemini, Perplexity, or Google AI Overviews and is never labeled as such.
+- Failed pages are excluded from evidence rather than counted as missing features.
 `;
+}
+
+function renderVisibility(visibility) {
+  if (!visibility || visibility.skipped) {
+    return `## Observed visibility snapshot: not measured\n\n${visibility?.reason || 'No provider response was available.'}`;
+  }
+  const score = typeof visibility.score === 'number' ? `${visibility.score}/100` : 'not scored';
+  const sources = visibility.sources?.length
+    ? visibility.sources.map(source => `- [${source.title}](${source.url}) — ${source.domain}`).join('\n')
+    : '- No inspectable grounded sources returned.';
+  return `## Observed visibility snapshot: ${score}
+
+Provider: ${visibility.provider} / ${visibility.model}
+Category query: ${visibility.category}
+Measured: ${visibility.measuredAt}${visibility.cached ? ' (cached result)' : ''}
+
+### Grounded answer
+
+${visibility.answer || 'No answer returned.'}
+
+### Sources inspected
+
+${sources}
+
+> ${visibility.note || ''}`;
 }

@@ -1,13 +1,13 @@
 {
   "name": "geo-auditor",
-  "version": "2.0.0",
-  "description": "A live AI-search-visibility auditor: enter a business URL, get a scored, evidenced GEO report with prioritized fixes.",
+  "version": "3.0.0",
+  "description": "Evidence-first GEO auditing with a deterministic readiness score and an optional Groq-grounded visibility snapshot.",
   "type": "module",
   "scripts": {
     "start": "node src/server.js",
     "audit": "node src/cli.js",
     "demo": "node scripts/run-sample-audits.js",
-    "test": "node --test"
+    "test": "node --test --test-concurrency=1"
   },
   "engines": { "node": ">=20" },
   "keywords": ["geo", "llmo", "ai-search", "seo", "auditor"],
