@@ -3,6 +3,7 @@ const API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 // be changed through an environment variable, preventing an accidental switch
 // to a metered model while the product is in its zero-cost validation phase.
 const MODEL = 'groq/compound-mini';
+const BASIC_SEARCH_VERSION = '2025-07-23';
 const MAX_FREE_DAILY_CALLS = 200;
 const CACHE_LIMIT = 500;
 
@@ -11,7 +12,7 @@ const inFlight = new Map();
 let usage = { date: utcDate(), calls: 0 };
 
 export async function probeAiVisibility({ businessName, baseUrl, category }) {
-  if (!process.env.GROQ_API_KEY) return skipped('GROQ_API_KEY is not configured. The technical audit still ran in full.');
+  if (!process.env.GROQ_API_KEY) return skipped('GROQ_API_KEY is not configured. The technical audit still ran in full.', { code: 'not_configured' });
 
   const domain = safeHostname(baseUrl);
   const neutralCategory = cleanCategory(category, businessName, domain);
@@ -44,7 +45,7 @@ export async function probeAiVisibility({ businessName, baseUrl, category }) {
 }
 
 export async function discoverCitationSources(query) {
-  if (!process.env.GROQ_API_KEY) return skipped('GROQ_API_KEY is not configured. Add it on Railway to enable live source discovery.');
+  if (!process.env.GROQ_API_KEY) return skipped('GROQ_API_KEY is not configured. Add it on Railway to enable live source discovery.', { code: 'not_configured' });
   const cleaned = cleanQuery(query);
   return cachedGroqRequest(`sources:${cleaned.toLowerCase()}`, async () => {
     const prompt = [
@@ -52,7 +53,12 @@ export async function discoverCitationSources(query) {
       'Give a concise, neutral answer and cite the sources that materially support it.',
       'Prefer useful independent editorial, industry, comparison, community, video, or research sources over thin pages.'
     ].join('\n');
-    return callGroq(prompt, { excludeDomains: excludedDomains() });
+    const fallbackPrompt = `Search the web for "${cleaned}". Return a short neutral answer supported by up to five cited sources.`;
+    return callGroq(prompt, {
+      excludeDomains: excludedDomains(),
+      fallbackPrompt,
+      preferBasicSearch: cleaned.split(/\s+/).length <= 4
+    });
   });
 }
 
@@ -78,60 +84,102 @@ async function runCategorySearch(category) {
     'Name 3-5 credible options only when supported by retrieved sources, explain the main selection criteria, and cite the sources used.',
     'Keep the answer under 450 words.'
   ].join('\n');
-  return callGroq(prompt, { excludeDomains: excludedDomains() });
+  const fallbackPrompt = `Search the web for the best options for "${category}". Return a short neutral answer supported by up to five cited sources.`;
+  return callGroq(prompt, { excludeDomains: excludedDomains(), fallbackPrompt });
 }
 
-async function callGroq(prompt, { excludeDomains = [] } = {}) {
+async function callGroq(prompt, { excludeDomains = [], fallbackPrompt = prompt, preferBasicSearch = false } = {}) {
+  const attempts = preferBasicSearch
+    ? [{ prompt: fallbackPrompt, basicSearch: true }]
+    : [
+        { prompt, basicSearch: false },
+        { prompt: fallbackPrompt, basicSearch: true }
+      ];
+
+  try {
+    for (let index = 0; index < attempts.length; index += 1) {
+      const attempt = attempts[index];
+      const response = await postGroq(attempt.prompt, {
+        excludeDomains,
+        basicSearch: attempt.basicSearch
+      });
+
+      if (response.status === 413 && index < attempts.length - 1) {
+        await response.text().catch(() => '');
+        continue;
+      }
+      if (!response.ok) throw await groqErrorForResponse(response);
+
+      const data = await response.json();
+      const message = data.choices?.[0]?.message || {};
+      return {
+        skipped: false,
+        provider: 'Groq',
+        model: data.model || MODEL,
+        measuredAt: new Date().toISOString(),
+        answer: String(message.content || '').trim(),
+        queries: extractSearchQueries(message),
+        sources: extractSearchSources(message).slice(0, 12),
+        searchMode: attempt.basicSearch ? 'basic' : 'advanced',
+        fallbackUsed: index > 0,
+        usage: data.usage ? {
+          promptTokens: data.usage.prompt_tokens,
+          completionTokens: data.usage.completion_tokens,
+          totalTokens: data.usage.total_tokens
+        } : null
+      };
+    }
+  } catch (error) {
+    if (error instanceof GroqError) return skipped(error.message, { code: error.code });
+    if (error.name === 'AbortError') return skipped('Groq timed out. The technical audit still ran in full.', { code: 'timeout' });
+    return skipped(`Groq request failed: ${error.message}`, { code: 'provider_error' });
+  }
+
+  return skipped('Groq could not complete this search. Try a more specific query.', { code: 'provider_error' });
+}
+
+async function postGroq(prompt, { excludeDomains, basicSearch }) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 30000);
   try {
     consumeQuota();
-    const response = await fetch(API_URL, {
+    return await fetch(API_URL, {
       method: 'POST',
       signal: controller.signal,
       headers: {
         'content-type': 'application/json',
-        authorization: `Bearer ${process.env.GROQ_API_KEY}`
+        authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+        ...(basicSearch ? { 'Groq-Model-Version': BASIC_SEARCH_VERSION } : {})
       },
       body: JSON.stringify({
         model: MODEL,
         messages: [{ role: 'user', content: prompt }],
-        max_completion_tokens: 1000,
+        max_completion_tokens: basicSearch ? 700 : 1000,
         compound_custom: { tools: { enabled_tools: ['web_search'] } },
         ...(excludeDomains.length ? { search_settings: { exclude_domains: excludeDomains } } : {})
       })
     });
-
-    if (!response.ok) {
-      const body = await response.text().catch(() => '');
-      if (response.status === 401 || response.status === 403) throw new GroqError('Groq rejected the API key. Check GROQ_API_KEY on Railway.');
-      if (response.status === 429) throw new GroqError('Groq free-tier quota is currently exhausted. The technical audit remains available.');
-      throw new GroqError(`Groq returned ${response.status}: ${body.slice(0, 180)}`);
-    }
-
-    const data = await response.json();
-    const message = data.choices?.[0]?.message || {};
-    return {
-      skipped: false,
-      provider: 'Groq',
-      model: data.model || MODEL,
-      measuredAt: new Date().toISOString(),
-      answer: String(message.content || '').trim(),
-      queries: extractSearchQueries(message),
-      sources: extractSearchSources(message).slice(0, 12),
-      usage: data.usage ? {
-        promptTokens: data.usage.prompt_tokens,
-        completionTokens: data.usage.completion_tokens,
-        totalTokens: data.usage.total_tokens
-      } : null
-    };
-  } catch (error) {
-    if (error instanceof GroqError) return skipped(error.message);
-    if (error.name === 'AbortError') return skipped('Groq timed out. The technical audit still ran in full.');
-    return skipped(`Groq request failed: ${error.message}`);
   } finally {
     clearTimeout(timer);
   }
+}
+
+async function groqErrorForResponse(response) {
+  const body = await response.text().catch(() => '');
+  const providerMessage = parseJson(body)?.error?.message;
+  if (response.status === 401 || response.status === 403) {
+    return new GroqError('Groq rejected the API key. Check GROQ_API_KEY on Railway.', 'invalid_key');
+  }
+  if (response.status === 413) {
+    return new GroqError('Groq could not process this search even after the smaller-search fallback. Try a more specific query.', 'request_too_large');
+  }
+  if (response.status === 429) {
+    return new GroqError('Groq free-tier quota is currently exhausted. The technical audit remains available.', 'quota_exhausted');
+  }
+  return new GroqError(
+    `Groq request failed (${response.status})${providerMessage ? `: ${String(providerMessage).slice(0, 160)}` : '.'}`,
+    'provider_error'
+  );
 }
 
 async function cachedGroqRequest(key, producer) {
@@ -326,11 +374,16 @@ function parseJson(value) {
   try { return JSON.parse(value); } catch { return null; }
 }
 
-function skipped(reason) {
-  return { skipped: true, reason, provider: 'Groq', model: MODEL, score: null, sources: [] };
+function skipped(reason, { code = 'provider_unavailable' } = {}) {
+  return { skipped: true, reason, code, provider: 'Groq', model: MODEL, score: null, sources: [] };
 }
 
 function utcDate() { return new Date().toISOString().slice(0, 10); }
 function escapeRegExp(value) { return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
 
-class GroqError extends Error {}
+class GroqError extends Error {
+  constructor(message, code = 'provider_error') {
+    super(message);
+    this.code = code;
+  }
+}
