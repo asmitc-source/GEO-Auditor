@@ -12,8 +12,8 @@ if (!url) {
   process.exit(1);
 }
 
-if (!process.env.OPENAI_API_KEY) {
-  console.error('Note: OPENAI_API_KEY is not set. The AI citation probe will be skipped (not faked).');
+if (!process.env.GROQ_API_KEY) {
+  console.error('Note: GROQ_API_KEY is not set. The technical audit will run, but observed visibility will remain unmeasured.');
 }
 
 const report = await auditSite(url);

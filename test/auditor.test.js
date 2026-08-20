@@ -27,9 +27,11 @@ test('auditSite scores a real fetchable page and never invents evidence for fail
   const port = server.address().port;
 
   try {
-    const report = await auditSite(`http://127.0.0.1:${port}`, { skipAiProbe: true, timeoutMs: 2000 });
+    const report = await auditSite(`http://127.0.0.1:${port}`, { skipAiProbe: true, timeoutMs: 2000, allowPrivateNetwork: true });
     assert.equal(report.status, 'complete');
     assert.equal(typeof report.score, 'number');
+    assert.equal(report.score, report.readinessScore);
+    assert.equal(report.visibility.score, null);
     assert.equal(report.pages[0].ok, true);
     const entityCheck = report.checks.find(c => c.id === 'entity-clarity');
     assert.equal(entityCheck.evidence.hasOrganizationSchema, true);
