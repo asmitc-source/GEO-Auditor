@@ -125,6 +125,6 @@ The test suite uses local fixtures and does not require a Groq key or consume pr
 
 <div align="center">
 
-Built by Nakama Growth · MIT License
+Built by Asmit 
 
 </div>
