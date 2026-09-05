@@ -94,3 +94,84 @@ test('source discovery uses one web-only Groq request and caches the inspectable
     else process.env.GROQ_API_KEY = originalKey;
   }
 });
+
+test('short broad source queries use the smaller basic-search version directly', async () => {
+  const originalFetch = globalThis.fetch;
+  const originalKey = process.env.GROQ_API_KEY;
+  let calls = 0;
+  process.env.GROQ_API_KEY = 'test-key';
+  globalThis.fetch = async (_url, options) => {
+    calls += 1;
+    const payload = JSON.parse(options.body);
+    assert.equal(options.headers['Groq-Model-Version'], '2025-07-23');
+    assert.equal(payload.max_completion_tokens, 700);
+    assert.match(payload.messages[0].content, /^Search the web for/);
+    return new Response(JSON.stringify({
+      model: 'groq/compound-mini',
+      choices: [{ message: {
+        content: 'A compact grounded answer.',
+        executed_tools: [{
+          arguments: JSON.stringify({ query: 'best RFP software 8801' }),
+          search_results: { results: [{ title: 'Broad fixture', url: 'https://broad.example/guide', content: 'Broad source', score: 0.7 }] }
+        }]
+      } }]
+    }), { status: 200, headers: { 'content-type': 'application/json' } });
+  };
+
+  try {
+    const result = await discoverCitationSources('best RFP software 8801');
+    assert.equal(result.skipped, false);
+    assert.equal(result.searchMode, 'basic');
+    assert.equal(result.fallbackUsed, false);
+    assert.equal(result.sources[0].domain, 'broad.example');
+    assert.equal(calls, 1);
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalKey === undefined) delete process.env.GROQ_API_KEY;
+    else process.env.GROQ_API_KEY = originalKey;
+  }
+});
+
+test('a 413 advanced-search rejection gets one bounded basic-search retry', async () => {
+  const originalFetch = globalThis.fetch;
+  const originalKey = process.env.GROQ_API_KEY;
+  let calls = 0;
+  process.env.GROQ_API_KEY = 'test-key';
+  globalThis.fetch = async (_url, options) => {
+    calls += 1;
+    if (calls === 1) {
+      assert.equal(options.headers['Groq-Model-Version'], undefined);
+      return new Response(JSON.stringify({ error: { message: 'Request Entity Too Large', code: 'request_too_large' } }), {
+        status: 413,
+        headers: { 'content-type': 'application/json' }
+      });
+    }
+
+    const payload = JSON.parse(options.body);
+    assert.equal(options.headers['Groq-Model-Version'], '2025-07-23');
+    assert.equal(payload.max_completion_tokens, 700);
+    return new Response(JSON.stringify({
+      model: 'groq/compound-mini',
+      choices: [{ message: {
+        content: 'Fallback answer.',
+        executed_tools: [{
+          arguments: JSON.stringify({ query: 'best enterprise RFP software for global teams 9912' }),
+          search_results: { results: [{ title: 'Fallback fixture', url: 'https://fallback.example/guide', content: 'Fallback source', score: 0.75 }] }
+        }]
+      } }]
+    }), { status: 200, headers: { 'content-type': 'application/json' } });
+  };
+
+  try {
+    const result = await discoverCitationSources('best enterprise RFP software for global teams 9912');
+    assert.equal(result.skipped, false);
+    assert.equal(result.searchMode, 'basic');
+    assert.equal(result.fallbackUsed, true);
+    assert.equal(result.sources[0].domain, 'fallback.example');
+    assert.equal(calls, 2);
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalKey === undefined) delete process.env.GROQ_API_KEY;
+    else process.env.GROQ_API_KEY = originalKey;
+  }
+});

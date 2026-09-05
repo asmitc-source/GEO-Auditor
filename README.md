@@ -86,6 +86,8 @@ Source Explorer accepts a buyer or research query, calls Groq Compound Mini with
 - provider relevance scores when available;
 - whether the result came from cache.
 
+Very broad queries use Groq's smaller basic-search version. If an advanced search is rejected as too large, the app makes one bounded basic-search retry and counts both attempts inside the same 200-call daily ceiling.
+
 This replaces the Reddit-only workflow and makes the product useful across editorial sites, comparison pages, research sources, communities, and video results surfaced by the provider.
 
 ## API routes

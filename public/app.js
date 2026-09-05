@@ -276,7 +276,12 @@ sourceForm.addEventListener('submit', async event => {
 
 function renderSourceSearch(data) {
   if (data.skipped) {
-    return `<div class="source-skip"><strong>Source Explorer is not enabled yet</strong><p>${escapeHtml(data.reason)}</p><p>Add <code>GROQ_API_KEY</code> as a Railway variable. Keep the Groq account on its free plan.</p></div>`;
+    const missingKey = data.code === 'not_configured';
+    const title = missingKey ? 'Source Explorer is not enabled yet' : 'Source search could not complete';
+    const nextStep = missingKey
+      ? 'Add <code>GROQ_API_KEY</code> as a Railway variable. Keep the Groq account on its free plan.'
+      : 'Try a more specific query. The technical website audit remains available, and no result is being invented.';
+    return `<div class="source-skip"><strong>${title}</strong><p>${escapeHtml(data.reason)}</p><p>${nextStep}</p></div>`;
   }
   const cacheNote = data.cached ? `Cached ${formatAge(data.cacheAgeSeconds)}` : `Searched ${formatDate(data.measuredAt)}`;
   return `<section class="source-summary">
